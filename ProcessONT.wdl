@@ -51,13 +51,13 @@ workflow ProcessONT {
      # basecalling generates multiple unaligned bams
      # with base mods embedded. Need to align with
      # guppy's version of mm2 to retain the MM and ML tags
-     # the aligner can return a sorted and indexed bam
+     # the aligner can return a sorted and indexed bam. 
+     # it does NOT need a GPU
      scatter(ubam in guppy_basecaller.bams){
         call guppy_aligner {
            input: bam=ubam,
-	   	guppy_config=GuppyConfig,
 	 	reference=Reference,
-		queue=GPUQueue,		
+		queue=Queue,		
       		docker='dhspence/docker-gguppy:latest',
 		jobgroup=JobGroup
        }

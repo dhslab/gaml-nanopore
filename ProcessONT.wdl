@@ -86,16 +86,25 @@ workflow ProcessONT {
 
      }
 
+     # use ont's modbam2bed to get meth values by haplotype.
+     # May need to parallelize this by genome block for speed.
+     # could also write a simple python script with the modbampy library.
+     call extract_5mc {
+     	input: bam=pepper_margin_deepvariant.bam,
+	       queue=Queue,
+      	       docker='dhspene/docker-longread',
+	       jobgroup=JobGroup
+     }
+     
      # additional tasks that are needed, but methods need to be define/decided:
      #  1) Call somatic small variants. My suggestions are freebayes (I've used on Hifi)
      #      and Octopus
      #  2) Annotate small variants w/ gnomad 3.0 (I have VCFs for this)
      #  3) Call SVs. Haley's suggestions here will be key.
      #  4) Filter potential somatic variants based on phase/haplotype information
-     #
 
      call gather_files as gather_results {
-     	  input: files=[<pepper_margin_deepvariant.files>]
+     	  input: files=[<pepper_margin_deepvariant.files,etc>]
 	  	 outdir=OutDir + '/' + reference
      }
   }

@@ -51,11 +51,12 @@ workflow ProcessONT {
      # basecalling generates multiple unaligned bams
      # with base mods embedded. Need to align with
      # guppy's version of mm2 to retain the MM and ML tags
-     # the aligner can return a sorted and indexed bam. 
+     # the aligner can return a sorted and indexed bams and
+     # runs on multiple bams in series. Not sure if this should be
+     # parallelized or not.
      # it does NOT need a GPU
-     scatter(ubam in guppy_basecaller.bams){
-        call guppy_aligner {
-           input: bam=ubam,
+     call guppy_aligner {
+         input: bams=guppy_basecaller.bampath,
 	 	reference=Reference,
 		queue=Queue,		
       		docker='dhspence/docker-gguppy:latest',
@@ -65,7 +66,7 @@ workflow ProcessONT {
 
      # merge individual bams, like normal
      call merge_bams {
-    	input: bams=guppy_aligner.bam,
+    	input: bams=guppy_aligner.bams,
 	       name=Samplename,
 	       queue=Queue,
 	       jobgroup=JobGroup
@@ -110,7 +111,7 @@ workflow ProcessONT {
   }
 }
 
-task guppy_basecaller{
+task guppy_basecaller {
 
   input {  
 
@@ -135,4 +136,28 @@ task guppy_basecaller{
       String outdir = "~{OutputDir}"
   }
 }
+
+task guppy_aligner {
+
+   input {
+    String bams
+    String reference
+    String queue
+    String docker
+    String jobGroup
+   }
+   
+   command {
+   	guppy_aligner -i ~{bampath} -t 8 -s ./ --bam_out --index -a ~{reference}
+   }
+   
+   runtime {
+      docker_image: docker
+   }
+   
+   output {
+   
+   }
+}
+
 

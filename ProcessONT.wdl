@@ -111,17 +111,25 @@ workflow ProcessONT {
   }
 }
 
+# need to make sure GPU pars can be specified in the cromwell config
 task guppy_basecaller {
 
   input {  
+	String inpath
+	String guppy_config
 
-    String queue
-    String docker
-    String jobGroup
+	Int callers = 2
+	String gpupars = 'cuda:all:100%'
+	
+	String queue
+	String docker
+	String jobGroup
 
   }
+  
   command {
-
+ 	guppy_basecaller -i ~{inpath} --bam_out -x ~{gpupars} -s ./ -c ~{guppy_config} --num_callers ~{callers}
+	
 # bsub -g /dspencer/adhoc -G compute-dspencer -q general -R 'gpuhost' -gpu "num=2:gmodel=TeslaV100_SXM2_32GB:gmem=16G" -eo testGPU.err -oo testGPU.log -a "docker(dhspence/docker-gguppy)" guppy_basecaller -i ./fast5_pass/ --bam_out -x cuda:all:100% -s ./unaligned_bam -c /opt/ont/guppy/data/dna_r10.4.1_e8.2_260bps_modbases_5mc_cg_sup.cfg --num_callers 2
 
   }
@@ -140,11 +148,11 @@ task guppy_basecaller {
 task guppy_aligner {
 
    input {
-    String bams
-    String reference
-    String queue
-    String docker
-    String jobGroup
+    	String bams
+    	String reference
+    	String queue
+    	String docker
+    	String jobGroup
    }
    
    command {
@@ -152,12 +160,41 @@ task guppy_aligner {
    }
    
    runtime {
-      docker_image: docker
+      	docker_image: docker
+      	queue: queue
+      	job_group: jobGroup
    }
    
    output {
-   
+   	bams = glob("*.bam")
+	indexes = glob("*.bai")
    }
 }
 
+task merge_bams {
+
+   input {
+    	String bams
+	String samplename
+    	String queue
+    	String docker
+    	String jobGroup
+   }
+   
+   command {
+   	samtools merge -@ 8 -o "~{samplename}.bam" ~{sep=" " bams} && \
+	samtools index -@ 8 "~{samplename}.bam"
+   }
+   
+   runtime {
+      	docker_image: docker
+      	queue: queue
+      	job_group: jobGroup
+   }
+   
+   output {
+   	bams = glob("*.bam")
+	indexes = glob("*.bai")
+   }
+}
 
